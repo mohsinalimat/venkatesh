@@ -1,0 +1,24 @@
+cur_frm.add_fetch('style', 'color', 'color')
+cur_frm.add_fetch('style', 'total', 'cut_qty')
+cur_frm.add_fetch('consumption_type', 'type_short_name', 'type_short_name')
+
+
+frappe.ui.form.on("Consumption", "validate", function(frm){
+frm.set_value("balance_qty", flt(frm.doc.received_qty)-flt(frm.doc.fabric_used));
+frm.set_value("consumption", (flt(frm.doc.fabric_used))/flt(frm.doc.cut_qty));
+});
+frappe.ui.form.on("Consumption", "refresh", function(doc, cdt, cd){
+    var docus = locals[cdt][cd].consumption_details;
+    var tot = 0;
+    if(docus){
+        docus.forEach(function(docu){
+            docu.total_wastage = flt(docu.end_bit_waste)+flt(docu.extra_qty_cut_waste)+flt(docu.embroidary_allowance)+flt(docu.lay_edge_waste)+flt(docu.increase_for_big_size);
+            tot += docu.total_wastage;
+ docu.exact_consumption = (flt(docu.lay_length)/flt(docu.no_of_pcs))+flt(docu.loop_neck_pipping);
+docu.actual_consumption = (flt(docu.exact_consumption)+flt(docu.total_wastage))
+        });
+    }
+    doc.doc.total_packed = tot;
+    refresh_field(doc.doc.total_packed);
+    refresh_field(locals[cdt][cd].consumption_details);
+});

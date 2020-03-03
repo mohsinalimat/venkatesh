@@ -1,0 +1,45 @@
+cur_frm.add_fetch('item_code', 'base_item', 'base_item')
+cur_frm.add_fetch('item_code', 'mrp', 'basemrp')
+cur_frm.add_fetch('item_code', 'project', 'project')
+cur_frm.add_fetch('item_code', 'barcode', 'barcode')
+cur_frm.add_fetch('item_code', 'is_stock_item', 'is_stock_item')
+frappe.ui.form.on("Delivery Note", {
+    validate: function(frm) {
+        switch(frm.doc.company) {
+            case 'Astitva Creations Pvt Ltd.,':
+                frm.set_value("naming_series","A-DN-");
+if(frm.doc.is_return) {
+			frm.doc.naming_series = "A-DN-RET-"
+		};
+                break;
+            case 'Astitva Creations Surat':
+                frm.set_value("naming_series","AS-DN-");
+if(frm.doc.is_return) {
+			frm.doc.naming_series = "AS-DN-RET-"
+		};
+           }
+    }
+});
+
+
+frappe.ui.form.on("Delivery Note", "validate", function(frm, cdt, cdn) {
+	$.each(frm.doc.items || [], function(i, d) {
+		if (user=="gowrishankar@mittalclothing.com"){
+		d.warehouse= "Online Warehouse - ACPL"
+                 
+                }
+
+	});
+
+});
+frappe.ui.form.on("Delivery Note", "validate", function(frm, cdt, cdn) {
+	$.each(frm.doc.items || [], function(i, d) {
+		if (user=="prasad@mittalclothing.com"){
+		d.warehouse= "Online Warehouse - ACPL"
+                 
+                }
+
+	});
+
+});
+

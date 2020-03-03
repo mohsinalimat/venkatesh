@@ -1,0 +1,28 @@
+frappe.ui.form.on("Customer", "validate", function(frm, cdt, cdn){
+frappe.call({
+       "method": "frappe.client.get_value",
+        args: {
+		doctype: "Address",
+		fieldname: "partyaddress",
+               	filters: {
+		address_title:["=", frm.doc.name]
+			 }           			
+	      },	
+
+
+							
+	      callback: function (data) {									
+	      console.log(data);
+
+              cur_frm.set_value("primary_address", data.message.partyaddress);
+                        				        }					
+	     })
+
+});
+
+
+frappe.ui.form.on("Customer", "validate", function(frm, cdt, cdn) {
+frm.doc.tax_id=frm.doc.primary_address
+	
+});
+

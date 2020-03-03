@@ -1,0 +1,83 @@
+frappe.ui.form.on("Cost Sheet", {
+    onload_post_render: function(frm) {
+        frm.fields_dict["items"].grid.set_multiple_add("item_code", "qty");
+    }
+});
+cur_frm.add_fetch("item", "description", "description");
+cur_frm.add_fetch("item", "image", "image");
+cur_frm.add_fetch("item", "item_name", "item_name");
+cur_frm.add_fetch("item", "stock_uom", "uom");
+frappe.ui.form.on("Cost Sheet Operation", "operation", function(frm, cdt, cdn) {
+        var d = locals[cdt][cdn];
+        if(!d.operation) return;
+        frappe.call({
+                "method": "frappe.client.get",
+                args: {
+                        doctype: "Operation",
+                        name: d.operation
+                },
+                callback: function (data) {
+                        if(data.message.description) {
+                                frappe.model.set_value(d.doctype, d.name, "description", data.message.description);
+                        }
+                        if(data.message.workstation) {
+                                frappe.model.set_value(d.doctype, d.name, "workstation", data.message.workstation);
+                        }
+                }
+        })
+});
+
+cur_frm.cscript.is_default = function(doc) {
+        if (doc.is_default) cur_frm.set_value("is_active", 1);
+}
+cur_frm.add_fetch('consumption', 'title', 'title')
+frappe.ui.form.on("Cost Sheet", "validate", function(frm, cdt, cdn) {
+	$.each(frm.doc.operations || [], function(i, d) {
+d.operating_cost=flt(d.hour_rate)*flt(d.time_in_mins);	
+	});
+	
+});
+
+ frappe.ui.form.on("Cost Sheet", {
+	validate: function(frm, cdt, cdn) {
+		var d = locals[cdt][cdn];
+		var total = 0;
+frappe.model.set_value(d.doctype, d.name, "operating_cost", flt(d.hour_rate)*flt(d.time_in_mins));        
+frm.doc.operations.forEach(function(d) { total += (flt(d.hour_rate)*flt(d.time_in_mins)); });
+       frm.set_value('operating_cost', total);
+	}
+});
+
+frappe.ui.form.on("Cost Sheet", "validate", function(frm, cdt, cdn) {
+	$.each(frm.doc.items|| [], function(i, d) {
+d.amount=flt(d.qty)*flt(d.rate);	
+	});
+	
+});
+frappe.ui.form.on("Cost Sheet", {
+	validate: function(frm, cdt, cdn) {
+		var d = locals[cdt][cdn];
+		var total = 0;
+frappe.model.set_value(d.doctype, d.name, "raw_material_cost", flt(d.qty)*flt(d.rate));        
+frm.doc.items.forEach(function(d) { total += (flt(d.qty)*flt(d.rate)); });
+       frm.set_value('raw_material_cost', total);
+	}
+});
+frappe.ui.form.on("Cost Sheet", "validate", function(frm) {
+cur_frm.doc.total_cost=cur_frm.doc.raw_material_cost+cur_frm.doc.operating_cost;
+});
+frappe.ui.form.on("Cost Sheet", "validate", function(frm) {
+var tot=0;
+for (var i =0; i < cur_frm.doc.costs.length; i++){
+cur_frm.doc.costs[i].total_cost = cur_frm.doc.total_cost;
+cur_frm.doc.costs[i].cost=cur_frm.doc.total_cost*(cur_frm.doc.costs[i].percentage/100)
+tot+=cur_frm.doc.costs[i].cost;
+}
+cur_frm.doc.total=tot;
+cur_frm.doc.final_cost=cur_frm.doc.total+cur_frm.doc.total_cost;
+frm.refresh_field("costs");
+});
+frappe.ui.form.on("Cost Sheet", "validate", function(frm) {
+cur_frm.doc.final_cost=cur_frm.doc.total+cur_frm.doc.total_cost;
+frm.refresh_field("costs");
+});

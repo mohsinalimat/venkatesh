@@ -1,0 +1,41 @@
+.centerme {
+  text-align: center;
+}
+.print-format {
+  padding: 0.25in !important;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.print-format td, .print-format th {
+  padding: 1px !important;
+}
+.right {
+  text-align: right;
+}
+.unbold {
+  font-weight: 400 !important;
+}
+.bdtop {
+  border-top: 1px solid;
+}
+.bdbottom {
+  border-bottom: 1px solid;
+}
+.bdleft {
+  border-left: 1px solid;
+}
+.bdright {
+  border-right: 1px solid;
+}
+.bdtop2 {
+  border-top: 2px solid;
+}
+.bdbottom2 {
+  border-bottom: 2px solid;
+}
+.bdleft2 {
+  border-left: 2px solid;
+}
+.bdright2 {
+  border-right: 2px solid;
+}

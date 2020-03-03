@@ -1,0 +1,180 @@
+68.183.81.69
+chown -R youruser .git/
+sudo chown -R frappe:frappe /usr/lib/node_modules
+bench switch-to-branch v8.x.x frappe erpnext --upgrade
+bench switch-to-develop
+bench switch-to-branch master frappe
+bench reload-doctype Event
+bench reload-doctype Domain
+bench --force reload-doc Employee Tax Exemption Proof Submission doctype Employee Tax Exemption Proof Submission 
+bench --force reload-doc HR doctype Employee_Tax_Exemption_Proof_Submission
+
+UPDATE `tabDocField` SET fieldtype="Data" where parent="sales invoice" and fieldname="loyalty_program";
+UPDATE `tabDocField` SET fieldtype="Data" where parent="sales invoice" and fieldname="payment_terms_template"; 
+UPDATE `tabDocField` SET fieldtype="Data" where parent="sales invoice" and fieldname="payment_schedule"; 
+UPDATE `tabDocField` SET fieldtype="Data" where parent="sales invoice" and fieldname="auto_repeat"; 
+
+SELECT COUNT(*) c,item_code FROM tabItem GROUP BY item_code HAVING c > 1;
+
+UPDATE tabItem set item_code ="Simplicity-2-329-BRN.-XXL " WHERE name ="Simplicity-2-329-BRN-XXL ";
+
+SELECT * FROM tabItem WHERE item_code = ‘itemxyz’;
+bench --force reload-doc schools doctype student 
+INSERT INTO `tabReport` (`name`, `ref_doctype`, `module`,`report_name`) VALUES ( 'Eway Bill', 'Delivery Note','Regional','Eway Bill');
+Tax Category
+
+alter table tabCompany
+add column IF NOT EXISTS credit_days int(11) NOT NULL DEFAULT ‘0’
+, add column IF NOT EXISTS credit_days_based_on varchar(140) DEFAULT NULL
+
+
+To start mysql
+in frappe-bench: sudo service mysql start
+
+INSERT INTO `my_table` (`number`, `name`, `money`) VALUES (2, 'S. Name', 240);
+chattr -i
+lsattr
+sudo bench setup sudoers frappe
+
+ssh root@machineip
+
+# Prerequisites
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt-get install python-minimal -y
+sudo apt-get install build-essential python-setuptools -y
+
+# Adding Frappe User as sudoer and switching into it
+sudo adduser frappe
+usermod -aG sudo frappe
+su frappe
+cd /home/frappe/
+
+# Easyinstaller
+wget https://raw.githubusercontent.com/frappe/bench/master/playbooks/install.py
+sudo python install.py --production --user frappe
+OR
+Try and follow these steps, they have worked for the majority of people.
+
+1. sudo apt-get update
+ 2. sudo apt-get upgrade 
+3. sudo adduser frappe 
+4. sudo usermod -aG sudo frappe 
+5. sudo nano /etc/resolv.conf 
+6. sudo apt-get install python-minimal && python -V # was 2.7.12+ 
+7. wget https://raw.githubusercontent.com/frappe/bench/master/playbooks/install.py 8. sudo python install.py --production
+
+
+how to install erpnext on ubuntu
+This guide is based on https://github.com/frappe/bench, and is tested a couple of times against ubuntu 14.04/64.
+
+Login as root with ssh.
+Optionally:
+apt-get update
+
+apt-get upgrade
+
+dpkg-reconfigure tzdata
+
+apt-get install nano
+Add a user (erpnext for our example).
+adduser frappe
+Store password in a safe place for later use.
+
+visudo (to grant erpnext user sudo privileges, by copying root record)
+A nice article on user management: https://www.digitalocean.com/community/tutorials/how-to-add-and-delete-users-on-an-ubuntu-14-04-vps
+
+Login as frappe.
+su frappe
+Download script at home dir and execute it.
+cd ~
+wget https://raw.githubusercontent.com/frappe/bench/master/playbooks/install.py
+sudo python install.py --production --user frappe
+sudo python install.py --production --version 11 --user frappe
+
+sudo python install.py --production --user frappe --frappe-branch v11.x.x --erpnext-branch v11.x.x
+You will prompted for mysql and admin passwords.
+Store both passwords in a safe place for later use.
+
+The script is going to take some moments to complete depending on hardware, let’s say 5 or 10 minutes.
+
+Restart web server, sudo service nginx restart.
+Fire up your browser and point to your server’s IP (or hostname). If everything goes well you will see eprnext login screen. Use your stored admin pass to access web app. Eventually a nice setup wizard will show up at your browser.
+You’re amost done. To increase security you should install ssl. We’ll use let’s encrypt for our example.
+
+su erpnext
+cd ~
+cd frappe-bench
+Important! Assuming your domain is example.com: mv sites/site1.local sites/example.com
+nano sites/example.com/site_config.json
+Add "host_name": "https://example.com",
+Don’t forget commas separating json records.
+
+Enable dns multitenancy: bench config dns_multitenant on
+Regenerate nginx config: bench setup nginx
+Reload nginx: sudo service nginx reload
+Configure let’s encrypt: sudo -H bench setup lets-encrypt example.com
+If errors occur, recheck all your steps. If https/ssl still fails, try the manual method below.
+
+updating bench from v11(master)
+
+$ cd / home/frappe/frappe-bench/apps/erpnext
+$ git config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*"
+
+$ bench switch-to-branch version-11 frappe erpnext
+$ bench update
+
+----------------------
+1
+sudo passwd ubuntu
+sudo service sshd restart
+
+
+
+su root
+cd /opt
+wget https://certbot.eff.org/
+sudo service nginx stop
+./opt/certbot-auto certonly --standalone
+su erpnext
+cd ~/frappe-bench/sites/example.com
+nano sites/example.com/site_config.json
+Add two lines, beware of the commas separating json records! "ssl_certificate": "/etc/letsencrypt/live/example.com/fullchain.pem",
+"ssl_certificate_key": "/etc/letsencrypt/live/example.com/privkey.pem"
+, save and exit nano
+bench setup nginx, to regenerate cofig files.
+sudo service nginx restart
+Now, you should be ok with letsencrypt cert. Letsencrypt certificate expires every three months, so you’d better set up a cronjob that automatically renew certificate. It should be as easy as adding a crontab entry.
+
+crontab -e
+Add this: # renew letsencrypt certificates on 1st monday of every month and get an email if it gets executed
+MAILTO="mail@example.com"
+0 0 1-7 * * [ "$(date '+\%a')" = "Mon" ] && sudo service nginx stop && /opt/certbot-auto renew && sudo service nginx start
+You’re done
+VERY EASILY UPDATE ERPNEXT data to current ~v11
+login to mariadb using
+
+mysql -u root -p database-name;
+
+ensure you start at the folder where you uploaded the database or at least know its location. if you don’t know the erpnext db name, then use
+
+mysql -u root -p mysql;
+
+then type
+
+show databases;
+
+at the prompt (include the ; ) then see your erpnext db name; now type
+
+use erpnext-database-name.
+
+Then type
+
+source /home/frappe/frappe-bench/dbbackup.sql.
+
+Mysql nicely and very quickly imports everything in your backup; replacing tables in your fresh database.
+6. Your site will now have Internal Server Error: :joy: :smiling_imp: so yes! all good. Now you need to update so the database is fixed. Type banch update. If the update tells you there are changes that need to be committed or discarded (you have modifications); then do
+
+bench update --reset (also you can use git stash against the frappe and erpnext folders at the prompt).
+
+Now things begin to update. You will have errors like NULL issues on some tables, some patches will fail; I personally skip them if I look at them and can live without them; others usually are columns issues in tables which you can alter (POST PROBLEMS ON THIS THREAD AND YOU WILL GET HELP because we can’t know which exact tables may give you issues). I had one with apply_user_permission cannot be null, which I solved with this thread

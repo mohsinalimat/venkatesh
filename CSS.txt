@@ -1,0 +1,12 @@
+<style>
+@media print {
+            @page {size: landscape}
+            .print-format {
+                max-width: 11.7in;
+                padding: 0.25in;
+                min-height: 8.3in;
+                max-height: 8.5in;
+            }
+}
+
+</style>

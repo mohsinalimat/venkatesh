@@ -1,0 +1,154 @@
+Backup and restore from winSCP
+
+bench --site site1.local backup --with-files
+
+bench --site [sitename] --force restore /path/to/SQLFILE
+bench --site [sitename] migrate
+
+bench clear-cache
+bench clear-website-cache
+bench restart
+
+bench setup socketio
+bench setup supervisor
+bench setup nginx
+bench setup redis
+service nginx reload
+supervisorctl reload
+
+bench setup requirements
+bench setup socketio
+sudo bench setup lets-encrypt {your-site-here}
+sudo service supervisor restart
+sudo service nginx restart
+sudo supervisorctl restart gunicorn
+
+sudo service supervisor stop
+sudo service nginx stop
+bench start
+bench clear-cache
+bench clear-website-cache
+sudo service nginx restart
+sudo supervisorctl rest
+
+If you are not remembering site name then do bench --site all clear-website-cache
+
+For internal server error see the gunicorn log at frappe-bench/logs/frappe.log
+
+frappe@erpnext:~/frappe-bench$ ls -alt logs
+
+
+6522 6000 1160 0973 ,1125,153
+
+First, stop mariadb sudo service mysql stop
+Then create the file, add the variable
+Then restart mariadb sudo service mysql start
+
+Either the frappe-bench/logs or /var/log/ should have details of your case.
+
+RAM usage (htop)
+innodb_buffer_pool_size (should be 60-70% of RAM)
+Redis cache memory allocation (10% of RAM)
+Slow query log
+command=/home/frappe/frappe-bench/env/bin/gunicorn -b 127.0.0.1:8000 -w 6 -t 60 frappe.app:application --preload --limit-request-line 0
+./frappe-bench/config/nginx.conf: client_max_body_size 50m;
+./bench-repo/bench/config/templates/nginx.conf: client_max_body_size 50m;
+
+How to increase Innodb Pool Buffer size?
+The best way to make changes to variables is to create your own cnf file. This way, things won't get overwritten during any Ubuntu, MariaDB, or ERPNext update.
+
+I recommend making a new .cnf file in /etc/mysql/conf.d and making the change in there.
+
+First, stop mariadb sudo service mysql stop
+Then create the file, add the variable
+Then restart mariadb sudo service mysql start
+
+Increase memory in redis_cache.conf
+where can i find " redis cache " so i can change the value for it.
+frappe@erpnext:~/frappe-bench$ find . -name *.conf | xargs grep 'maxmemory'
+./config/redis_cache.conf:maxmemory 50mb
+./config/redis_cache.conf:maxmemory-policy allkeys-lru
+
+Redis Configuration Changes( do only if requires): 
+With the following changes CPU usage reduced from constant 100% to 10% and system started working fine.
+
+May do the following two changes in file:/etc/redis/redis.config if not done and restart system.
+ASINV-.YYYY.-
+
+costing  embroidery  erpnext  factory  frappe  mill  quality
+
+
+bench new-app quality
+
+139.59.33.173-my 1bd3e0294da19198
+142.93.208.221
+139.59.10.88 bob
+68.183.81.69 ACPL ERP
+139.59.2.57 MittalERP
+52.14.19.124 ec2 v-11
+18.222.194.126 ec2-v-12
+ec2-18-222-106-82.us-east-2.compute.amazonaws.com
+
+
+bench update --bench
+bench config http_timeout 600
+bench setup nginx
+bench setup supervisor
+sudo supervisorctl reload
+sudo service nginx restart
+
+ERPNext runs smooth now on such low configuration. Thanks to Frappe,foundation and contributors.
+
+bench set-config developer_mode 1
+159.65.156.241
+
+VERY EASILY UPDATE ERPNEXT data to current ~v11
+login to mariadb using
+
+mysql -u root -p database-name;
+
+ensure you start at the folder where you uploaded the database or at least know its location. if you don’t know the erpnext db name, then use
+
+mysql -u root -p mysql;
+
+then type
+
+show databases;
+
+at the prompt (include the ; ) then see your erpnext db name; now type
+
+use erpnext-database-name.
+
+Then type
+
+source /home/frappe/frappe-bench/dbbackup.sql.
+
+Mysql nicely and very quickly imports everything in your backup; replacing tables in your fresh database.
+6. Your site will now have Internal Server Error: :joy: :smiling_imp: so yes! all good. Now you need to update so the database is fixed. Type banch update. If the update tells you there are changes that need to be committed or discarded (you have modifications); then do
+
+bench update --reset (also you can use git stash against the frappe and erpnext folders at the prompt).
+
+Now things begin to update. You will have errors like NULL issues on some tables, some patches will fail; I personally skip them if I look at them and can live without them; others usually are columns issues in tables which you can alter (POST PROBLEMS ON THIS THREAD AND YOU WILL GET HELP because we can’t know which exact tables may give you issues). I had one with apply_user_permission cannot be null, which I solved with this thread
+schedule
+sudo supervisorctl stop frappe:frappe-worker
+sudo supervisorctl stop frappe:frappe-workerbeat
+sudo service redis-server restart
+redis-cli flushall # wipe all data
+rm /path/to/sites/celerybeat.pid
+rm /path/to/sites/test.schedule
+sudo supervisorctl start frappe:frappe-worker
+sudo supervisorctl start frappe:frappe-workerbeat
+
+Automatically stop the server
+run this command first then try to bench start
+echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+
+Material Receipt
+hassan 371561981
+
+Mysql server error
+/etc/init.d/mysql stop
+service mysql stop
+killall -KILL mysql mysqld_safe mysqld
+
+mysql -uroot -pAdministrator -Bse "GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.%.%.%' IDENTIFIED BY 'Administrator' WITH GRANT OPTION";
