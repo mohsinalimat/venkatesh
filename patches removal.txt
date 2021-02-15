@@ -1,0 +1,4 @@
+1.  Go to hooks.py and remove this "frappe.utils.change_log.check_for_update" from weekly long and daily.
+2. go to desk.js and remove this "this.show_update_available();"
+3. bench build
+4. bench restart

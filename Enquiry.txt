@@ -1,0 +1,164 @@
+frappe.ui.form.on('New Enquiry', {
+	after_save(frm) {
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.existing_lead",
+			args: {"mobile_number":frm.doc.mobile_number,"name":frm.doc.name1,"gender":frm.doc.gender,"blood_group":frm.doc.blood_group,"age":frm.doc.age,"diseases":frm.doc.diseases,"address":frm.doc.address,"city":frm.doc.city,"landmark":frm.doc.landmark},
+            
+				});
+// 		frappe.call({
+// 			method: "erpnext.crm.doctype.lead.lead.end_call",
+// 			args: {"agent_id":frm.doc.agent_name,"disposition":frm.doc.disposition1,"time":frm.doc.callback_date}
+	
+				// });
+// 		frm.reload_doc()
+		cur_frm.refresh();
+// 		frm.refresh_fields("");
+	},
+	mobile_number(frm) {
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.exist_lead",
+			args: {"mobile":frm.doc.mobile_number},
+			callback: function(r){
+                // console.log(r.message);
+                    if (r.message){
+                        console.log(r.message[0]);
+
+                        cur_frm.set_value("name1",r.message[0]['lead_name']);
+                        cur_frm.set_value("age",r.message[0]['age']);
+                        cur_frm.set_value("blood_group",r.message[0]['blood_group']);
+                        cur_frm.set_value("gender",r.message[0]['gender']);
+                        cur_frm.set_value("name1",r.message[0]['lead_name']);
+                        cur_frm.set_value("diseases",r.message[0]['diseases']);
+                        cur_frm.set_value("how_many_years",r.message[0]['years']);
+                        
+                    }
+            }	
+	
+				});	
+	},
+	onload(frm){
+	   // console.log(frappe.session)
+	    frm.set_value("agent_name", frappe.session.user_fullname)
+	    frm.set_value("country", "India")
+	},
+	state(frm) {
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.search",
+			args: {"state":frm.doc.state},
+	        callback: function(r) {
+	           // console.log(r.message);
+	           cur_frm.set_df_property("district","options",r.message);
+	            }
+				});	
+	},
+		district(frm) {
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.search_tehsil",
+			args: {"district":frm.doc.district},
+	        callback: function(r) {
+	            //if (r.message.length>1){
+	            console.log(r.message);
+	           cur_frm.set_df_property("tehsil","options",r.message);
+	            //}
+	           // else{
+	           //     console.log(r.message[0]);
+	           //     cur_frm.set_df_property("tehsil","options",r.message);
+	           //      //cur_frm.set_value("tehsil",r.message[0]);
+	           //      }
+	        }
+				});
+		if (frm.doc.district){
+		    cur_frm.set_value("city",frm.doc.district);
+		}
+	},
+		tehsil(frm) {
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.search_city",
+			args: {"tehsil":frm.doc.tehsil},
+	        callback: function(r) {
+	            console.log(r.message);
+	           cur_frm.set_df_property("city1","options",r.message);
+	            }
+				});	
+	},
+		city1(frm) {
+		    if (frm.doc.city1!="NA")
+    {		  
+	    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.search_pincode",
+			args: {"city":frm.doc.city1},
+	        callback: function(r) {
+	           // console.log(r.message);
+	           cur_frm.set_value("pincode",r.message);
+	            }
+				});	
+    }
+        
+    },
+})
+
+frappe.ui.form.on('New Enquiry Item', {
+item_code(frm,cdt,cdn){
+     var d = frappe.model.get_doc(cdt, cdn);
+     if(d.item_code){
+    frappe.call({
+			method: "erpnext.crm.doctype.new_enquiry.new_enquiry.get_item_price",
+			args: {"item":d.item_code},
+	        callback: function(r) {
+	            console.log(r.message);
+	            var price = r.message[0]
+	            frappe.model.set_value(cdt, cdn, "price_list_rate", price);
+	            frappe.model.set_value(cdt, cdn, "amount", price);
+	            frappe.model.set_value(cdt, cdn, "qty", 1);
+	            }
+				});	
+    }
+},
+    qty(frm,cdt,cdn){
+    var d = frappe.model.get_doc(cdt, cdn);
+     if(d.qty && d.amount){
+     var rate = (d.amount * d.qty)
+     frappe.model.set_value(cdt, cdn, "total_amount", rate);    
+     }
+},
+    total_amount(frm, cdt, cdn) { 
+        calculate_total_amount(frm, cdt, cdn)
+    },
+    items_remove(frm, cdt, cdn) { 
+        calculate_total_amount(frm, cdt, cdn)
+    },
+});
+
+
+let calculate_total_amount = function (frm, cdt, cdn){
+		let total_amount = 0.0;
+		var tbl = cur_frm.doc.items || [];
+		for(var i = 0; i < tbl.length; i++) {
+			total_amount+=flt(tbl[i].total_amount)
+		}
+
+		frm.set_value("total",total_amount);
+		//var grand_total = (total_amount + frm.doc.gst)
+	    //frm.set_value("grand_total",grand_total);
+		refresh_field("total")
+		//refresh_field("grand_total")
+};
+
+
+// 	item_code: function(doc, cdt, cdn) {
+// 		var item = frappe.get_doc(cdt, cdn);
+// 		frappe.model.round_floats_in(item, ["price_list_rate", "discount_percentage"]);
+
+// 		// check if child doctype is Sales Order Item/Qutation Item and calculate the rate
+// 		//if(in_list(["Quotation Item", "Sales Order Item", "Delivery Note Item", "Sales Invoice Item", "POS Invoice Item"]), cdt)
+// 		//	this.apply_pricing_rule_on_item(item);
+// 		//else
+// 		console.log(cint(frappe.defaults.get_default("editable_price_list_rate")))
+// 			item.amount = flt(item.price_list_rate * (1 - item.discount_percentage / 100.0),
+// 				precision("amount", item));
+// 				cur_frm.refresh_fields("amount")
+
+// 		//this.calculate_taxes_and_totals();
+// 	},
+	
+//})

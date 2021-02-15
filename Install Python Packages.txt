@@ -1,0 +1,42 @@
+You can include your package in requirements.txt and run a bench setup requirements.
+
+Package was installed in bench but I can’t invoke those files in my function
+
+Can you give us a sneak-peak of what you’re facing ? Hope you’ve imported the package
+
+
+Reply
+It’s been a while since we’ve seen monroy95 — their last post was 8 months ago.
+
+
+monroy95
+Nov '20
+
+This can help you:
+
+Option 1: Install in the virtual environment
+
+sudo ./env/bin/pip install pandas
+Option 2: Activate virtual environment from frappe-bench
+
+source env/bin/activate
+and
+
+pip install pandas
+To return
+
+deactivate
+
+------------------------------
+You simply need to activate the virtualenv at ~/frappe-bench/env/bin
+
+Hi All, I did the following
+
+bishnu@bishnu-laptop:~/frappe-bench/env/bin$ . ./activate
+(env) bishnu@bishnu-laptop:~/frappe-bench/env/bin$ pip install untangle
+Collecting untangle
+Installing collected packages: untangle
+Successfully installed untangle-1.1.1
+
+Thanks for your help.
+

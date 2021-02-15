@@ -1,0 +1,39 @@
+frappe.ui.form.on('Sales Invoice', {
+	refresh(frm) {
+	    const me = this;
+		//this.frm.cscript.material_request_btn();
+	},
+	validate(frm,cdt,cdn) {
+		warehouse(frm)
+	}
+// 	material_request_btn: function() {
+// 		var me = this;
+// 		this.$material_request_btn = this.frm.add_custom_button(__('Material Request'),
+// 			function() {
+// 				erpnext.utils.map_current_doc({
+// 					method: "erpnext.selling.doctype.sales_order.sales_order.make_material_request",
+// 					source_doctype: "Material Request",
+// 					target: me.frm,
+// 					setters: {
+// 						customer: me.frm.doc.customer || undefined,
+// 					},
+// 					get_query_filters: {
+// 						material_request_type: "Purchase",
+// 						docstatus: 1,
+// 						status: ["!=", "Stopped"],
+// 						per_ordered: ["<", 99.99],
+// 						company: me.frm.doc.company
+// 					}
+// 				})
+// 			}, __("Get items from"));
+// 	},
+})
+
+let warehouse = function (frm, cdt, cdn){
+		var tbl = cur_frm.doc.items || [];
+		for(var i = 0; i < tbl.length; i++) {
+		    var cost_center = "Main - JSLCP"
+	        tbl[i].cost_center = cost_center
+	    }
+    
+}

@@ -1,0 +1,45 @@
+frappe.ui.form.on('Employee', {
+	aadhar_card_number(frm) {
+		var pattern = /^([0-9]+(\s+)?(\-(\s+)?[0-9]+)*,*)+$/gm;
+        if (!pattern.test(frm.doc.aadhar_card_number))
+                {frm.doc.aadhar_card_number = '';
+			cur_frm.refresh_field('aadhar_card_number');
+			frappe.throw('Enter correct Aadhar Number');
+	}
+	},
+	job_applicant(frm){
+          frappe.call({
+			method: "erpnext.hr.doctype.employee.employee.check_job_applicant",
+			args: {"applicant":frm.doc.job_applicant},
+			callback: function(r){
+			    if(!r.exe){
+			        console.log(r.message);
+			    }
+			}
+	
+				});
+      },
+	 setup: function(frm) {
+	     frm.set_query('head_of_department', function(doc) {
+		    return {
+			    filters: {
+				    "hod": 1
+			    }
+		    }
+	     })
+	  frm.set_query('floor_manager1', function(doc) {
+		    return {
+			    filters: {
+				    "floor_manager":1
+			    }
+		    }
+        })
+      frm.set_query('team_leader1', function(doc) {
+		    return {
+			    filters: {
+				    "team_leader":1
+			    }
+		    }
+        })
+        }
+	 })

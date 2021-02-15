@@ -1,0 +1,36 @@
+frappe.ui.form.on('Attendance Request', {
+    validate(frm){
+        var todayTimeStamp = new Date; // Unix timestamp in milliseconds
+            var a=1000
+            var found = false;
+            for(var i=0; i<3;i++){
+            var oneDayTimeStamp = a * 60 * 60 * 24; // Milliseconds in a day
+            var diff = todayTimeStamp - oneDayTimeStamp;
+            var yesterdayDate = new Date(diff);
+            var yesterdayString = yesterdayDate.getFullYear() + '-' + (yesterdayDate.getMonth() + 1) + '-' + yesterdayDate.getDate();
+            console.log(yesterdayString);
+            console.log(frm.doc.from_date);
+            if (frm.doc.from_date.toString()==yesterdayString.toString()){
+                console.log(frm.doc.from_date);
+                console.log(yesterdayString);
+                found=true;
+            }
+            a=a+1000;
+            }
+            if(!found){
+                frappe.throw("You did not request after 4 days");
+            }
+    },
+// 	from_date(frm) {
+// 		    var todayTimeStamp = new Date; // Unix timestamp in milliseconds
+//             var oneDayTimeStamp = 4000 * 60 * 60 * 24; // Milliseconds in a day
+//             var diff = todayTimeStamp - oneDayTimeStamp;
+//             var yesterdayDate = new Date(diff);
+//             var yesterdayString = yesterdayDate.getFullYear() + '-' + (yesterdayDate.getMonth() + 1) + '-' + yesterdayDate.getDate();
+//             if (!(frm.doc.from_date.toString()==yesterdayString.toString())){
+//                 // console.log("yes");
+//                 frappe.throw("You did not Request Attendance after 4 days");
+//                 cur_frm.refresh();
+//             }
+// 		}
+})

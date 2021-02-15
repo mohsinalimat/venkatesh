@@ -1,0 +1,246 @@
+frappe.ui.form.on('Job Applicant', {
+	/*applicant_name(frm){
+	    console.log(frm.doc.applicant_name);
+	  var sentence = frm.doc.applicant_name.toLowerCase();
+	  for(var i = 0; i< sentence.length; i++){
+         sentence[i] = sentence[i][0].toUpperCase() + sentence[i].slice(1);
+      }
+   
+   frappe.model.set_value(frm.doc.doctype,frm.doc.name,"applicant_name",sentence);
+	},*/
+	
+	contact_no(frm){
+	    var pattern1 = /^([0-9]+(\s+)?(\-(\s+)?[0-9]+)*,*)+$/gm;
+        if (!pattern1.test(frm.doc.contact_no))
+                {frm.doc.contact_no = '';
+			cur_frm.refresh_field('contact_no');
+			frappe.throw('Enter correct Contact Number');
+	    }},
+	interview(frm) {
+		if (frm.doc.interview) {
+			return frm.call({
+				method: "get_employee_skill",
+				doc: frm.doc,
+				callback: function() {
+					refresh_field('employee_skill_map');
+					refresh_field('total_socre');
+				}
+			});
+		}
+	},
+	interview2(frm) {
+		if (frm.doc.interview2) {
+			return frm.call({
+				method: "get_employee_skill_map",
+				doc: frm.doc,
+				callback: function() {
+					refresh_field('employee_skill_map');
+				}
+			});
+		}
+	},
+	interview_status(frm){
+        if (frm.doc.interview_status == "Failed")
+                {frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Rejected");
+			cur_frm.refresh_field('status');
+	    }
+	    else{
+	        frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Open");
+			cur_frm.refresh_field('status');
+	    }
+	},
+	interveiew_status2(frm){
+        if (frm.doc.interveiew_status2 == "Failed")
+                {frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Rejected");
+			cur_frm.refresh_field('status');
+	    }
+	    else{
+	        frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Selected");
+			cur_frm.refresh_field('status');
+	    }
+	},
+	emergency_number(frm){
+	    var pattern1 = /^([0-9]+(\s+)?(\-(\s+)?[0-9]+)*,*)+$/gm;
+        if (!pattern1.test(frm.doc.emergency_number))
+                {frm.doc.emergency_number = '';
+			cur_frm.refresh_field('contact_no');
+			frappe.throw('Enter correct Contact Number');
+	    }},
+	date_of_birth(frm) {
+		var dateOfBirth=frm.doc.date_of_birth;
+		var split_dob = dateOfBirth.split("-")
+	    var year = split_dob[0];
+        var today = new Date();
+        var today_year=today.getFullYear();
+        var age=today_year-year
+        if(age<18){
+            frappe.throw("Age must be 18 or more than 18")
+        }
+	    frappe.model.set_value(frm.doc.doctype,frm.doc.name,"age_as_on_date",age);
+	},
+	
+	aadhar(frm){
+	    var pattern = /^([0-9]+(\s+)?(\-(\s+)?[0-9]+)*,*)+$/gm;
+        if (!pattern.test(frm.doc.aadhar))
+                {frm.doc.aadhar = '';
+			cur_frm.refresh_field('aadhar');
+			frappe.throw('Enter correct Aadhar Number');
+	    }
+	},
+	validate(frm){
+	    if (frm.doc.interview_status == "Passed")
+                {frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Open");
+			cur_frm.refresh_field('status');
+	    }
+	    if (frm.doc.interveiew_status2 == "Passed")
+                {frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Selected");
+			cur_frm.refresh_field('status');
+	    }
+	    if (frm.doc.interveiew_status2 == "Failed"){
+	        frappe.model.set_value(frm.doc.doctype,frm.doc.name,"status","Rejected");
+			cur_frm.refresh_field('status');
+	    }
+	    if (frm.doc.aadhar){
+ 		frappe.call({
+ 			method: "erpnext.hr.doctype.job_applicant.job_applicant.aadhar_check",
+ 			args: {"aadhar": frm.doc.aadhar},
+	        callback: function(r) {
+			    console.log(r);
+				if (!r.exe){
+			        cur_frm.set_value( "existing_employee", r.message[0]);
+			        cur_frm.set_value( "applicant_type", "Rejoining");
+				}
+			}
+ 				});
+ 			frappe.call({
+ 			method: "erpnext.hr.doctype.job_applicant.job_applicant.check_aadhar_applicant",
+ 			args: {"aadhar": frm.doc.aadhar},
+	        callback: function(r) {
+			    console.log(r);
+				if (!r.exe){
+			        cur_frm.set_value("reinterview", "Yes");
+				}
+				else{cur_frm.set_value("reinterview","No");}
+			}
+ 				});	
+	    }
+        
+ 	},
+//	}
+    calculate_total(frm) {
+	  	let goals = frm.doc.employee_skill_map || [];
+		let total = 0;
+
+		if (goals == []) {
+			frm.set_value('total_score', 0);
+			return;
+		}
+		for (let i = 0; i<goals.length; i++) {
+			total = flt(total)+flt(goals[i].score_earned)
+		}
+		if (!isNaN(total)) {
+			frm.set_value('total_score', total);
+			if (total >= frm.doc.total_socre){
+			    frm.set_value('interview_status', 'Passed');
+			}
+			else{
+			    frm.set_value('interview_status', 'Failed');
+			}
+			frm.refresh_field('calculate_total');
+		}
+	},
+    
+	set_score_earned(frm) {
+		let goals = frm.doc.employee_skill_map || [];
+		for (let i = 0; i<goals.length; i++) {
+			var d = locals[goals[i].doctype][goals[i].name];
+			if (d.score && d.per_weightage) {
+				d.score_earned = flt(d.per_weightage*d.score, precision("score_earned", d))/100;
+			}
+			else {
+				d.score_earned = 0;
+			}
+			refresh_field('score_earned', d.name, 'employee_skill_map');
+		}
+		frm.trigger('calculate_total');
+	},
+	set_score(frm) {
+		let goals = frm.doc.emplyee_skill_match || [];
+		for (let i = 0; i<goals.length; i++) {
+			var d = locals[goals[i].doctype][goals[i].name];
+			if (d.score && d.per_weightage) {
+				d.score_earned = flt(d.per_weightage*d.score, precision("score_earned", d))/100;
+			}
+			else {
+				d.score_earned = 0;
+			}
+			refresh_field('score_earned', d.name, 'emplyee_skill_match');
+		}
+		frm.trigger('calculate_total_earned');
+	},
+	calculate_total_earned(frm) {
+	  	let goals = frm.doc.emplyee_skill_match || [];
+		let total = 0;
+
+		if (goals == []) {
+			frm.set_value('total_score', 0);
+			return;
+		}
+		for (let i = 0; i<goals.length; i++) {
+			total = flt(total)+flt(goals[i].score_earned)
+		}
+		if (!isNaN(total)) {
+			frm.set_value('total_score_2', total);
+			if (total >= frm.doc.total_score1 && total > 0){
+			    frm.set_value('interveiew_status2', 'Passed');
+			}
+			else{
+			    frm.set_value('interveiew_status2', 'Failed');
+			}
+			frm.refresh_field('calculate_total');
+		}
+	},
+})
+
+
+
+frappe.ui.form.on('Appraisal Goal', {
+	score: function(frm, cdt, cdn) {
+		var d = locals[cdt][cdn];
+		if (flt(d.score) > 5) {
+			frappe.msgprint(__("Score must be less than or equal to 5"));
+			d.score = 0;
+			refresh_field('score', d.name, 'goals');
+		}
+		else {
+			    frm.trigger('set_score_earned');
+		        frm.trigger('set_score');
+		}
+	},
+	per_weightage: function(frm, cdt, cdn) {
+	    let total_amount = 0.0;
+		var tbl = cur_frm.doc.employee_skill_map || [];
+		var table = cur_frm.doc.emplyee_skill_match || [];
+		for(var i = 0; i < tbl.length; i++) {
+			total_amount+=flt(tbl[i].per_weightage)
+	    }
+	    for(var i = 0; i < table.length; i++) {
+			total_amt+=flt(table[i].per_weightage)
+	    }
+	    if (total_amount > 100){
+	        frappe.throw("Total weightage assigned should be 100%. It is "+ total_amount + "%")
+	    }
+	    if (total_amount){
+	        frm.trigger('set_score_earned');
+	    }
+	    if (total_amt > 100){
+	        frappe.throw("Total weightage assigned should be 100%. It is "+ total_amt + "%")
+	    }
+	    if(total_amt){
+	    frm.trigger('set_score');
+	    }
+	},
+	goals_remove: function(frm) {
+		frm.trigger('set_score_earned');
+	},
+})

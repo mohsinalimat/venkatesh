@@ -1,0 +1,23 @@
+frappe.ui.form.on('Stock Entry Detail', {
+	item_code(frm,cdt,cdn) {
+	    var d = frappe.model.get_doc(cdt, cdn);
+	    if(d.item_code){
+	    console.log(d.item_code);
+		frappe.call({
+			method: "erpnext.stock.doctype.stock_entry.stock_entry.get_warehouse",
+			args: {"item_code": d.item_code},
+			callback: function(r) {
+			    console.log(r);
+				if (!r.exe){
+				    if (frm.doc.stock_entry_type == "Material Issue" || frm.doc.stock_entry_type == "Material Transfer"){
+					frappe.model.set_value(cdt, cdn, "s_warehouse", r.message);
+				    }
+				    if (frm.doc.stock_entry_type == "Material Receipt"){
+					frappe.model.set_value(cdt, cdn, "t_warehouse", r.message);
+				    }
+				}
+			}
+		})	
+	}
+	}
+})
