@@ -1,0 +1,13 @@
+function total_calc(frm, cdt, cdn) { 
+    var d = locals[cdt][cdn]; 
+    frappe.model.set_value(cdt, cdn, "duty_amount", flt(d.claimed_amount) - flt(d.actual_pi_value_usd)); 
+    frm.refresh_field("duty_amount"); 
+}
+
+frappe.ui.form.on("LC Pipeline", "duty_amount", total_calc);
+frappe.ui.form.on("LC Pipeline", "claimed_amount", total_calc);
+frappe.ui.form.on("LC Pipeline", "actual_pi_value_usd", total_calc);
+
+frappe.ui.form.on('LC Pipeline', 'lc_date', function(frm){
+    frm.set_value("lc_ci_value", frappe.datetime.get_diff(frm.doc.lc_date, frm.doc.in_house_date));
+});

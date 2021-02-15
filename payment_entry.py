@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import frappe, erpnext, json
 from frappe import _, scrub, ValidationError
 from frappe.utils import flt, comma_or, nowdate, getdate
-from erpnext.accounts.utils import get_outstanding_invoices, get_account_currency, get_balance_on, get_allow_cost_center_in_entry_of_bs_account
+from erpnext.accounts.utils import get_outstanding_invoices, get_account_currency, get_balance_on
 from erpnext.accounts.party import get_party_account
 from erpnext.accounts.doctype.journal_entry.journal_entry import get_default_bank_cash_account
 from erpnext.setup.utils import get_exchange_rate
@@ -84,7 +84,7 @@ class PaymentEntry(AccountsController):
 		self.delink_advance_entry_references()
 		self.update_payment_schedule(cancel=1)
 		self.set_payment_req_status()
-		self.set_status()
+		self.set_status(update=True)
 
 	def set_payment_req_status(self):
 		from erpnext.accounts.doctype.payment_request.payment_request import update_payment_req_status
@@ -214,7 +214,7 @@ class PaymentEntry(AccountsController):
 				self.company_currency, self.posting_date)
 
 	def validate_mandatory(self):
-		for field in ("paid_amount","received_amount" ,"source_exchange_rate", "target_exchange_rate"):
+		for field in ("paid_amount", "received_amount", "source_exchange_rate", "target_exchange_rate"):
 			if not self.get(field):
 				frappe.throw(_("{0} is mandatory").format(self.meta.get_label(field)))
 
@@ -279,7 +279,7 @@ class PaymentEntry(AccountsController):
 				outstanding_amount, is_return = frappe.get_cached_value(d.reference_doctype, d.reference_name, ["outstanding_amount", "is_return"])
 				if outstanding_amount <= 0 and not is_return:
 					no_oustanding_refs.setdefault(d.reference_doctype, []).append(d)
-		
+
 		for k, v in no_oustanding_refs.items():
 			frappe.msgprint(_("{} - {} now have {} as they had no outstanding amount left before submitting the Payment Entry.<br><br>\
 					If this is undesirable please cancel the corresponding Payment Entry.")
@@ -340,13 +340,16 @@ class PaymentEntry(AccountsController):
 					frappe.db.sql(""" UPDATE `tabPayment Schedule` SET paid_amount = `paid_amount` + %s
 							WHERE parent = %s and payment_term = %s""", (amount, key[1], key[0]))
 
-	def set_status(self):
+	def set_status(self, update=False):
 		if self.docstatus == 2:
 			self.status = 'Cancelled'
 		elif self.docstatus == 1:
 			self.status = 'Submitted'
 		else:
 			self.status = 'Draft'
+
+		if update:
+			self.db_set('status', self.status)
 
 	def set_amounts(self):
 		self.set_amounts_in_company_currency()
@@ -428,14 +431,14 @@ class PaymentEntry(AccountsController):
 			paid_amount = self.paid_amount if self.payment_type=="Receive" else self.received_amount
 			additional_charges = sum([flt(d.amount) for d in self.deductions])
 
-#			if not total_negative_outstanding:
-#				frappe.throw(_("Cannot {0} {1} {2} without any negative outstanding invoice")
-#					.format(self.payment_type, ("to" if self.party_type=="Customer" else "from"),
-#						self.party_type), InvalidPaymentEntry)
+			if not total_negative_outstanding:
+				frappe.throw(_("Cannot {0} {1} {2} without any negative outstanding invoice")
+					.format(self.payment_type, ("to" if self.party_type=="Customer" else "from"),
+						self.party_type), InvalidPaymentEntry)
 
-#			elif paid_amount - additional_charges > total_negative_outstanding:
-#				frappe.throw(_("Paid Amount cannot be greater than total negative outstanding amount {0}")
-#					.format(total_negative_outstanding), InvalidPaymentEntry)
+			elif paid_amount - additional_charges > total_negative_outstanding:
+				frappe.throw(_("Paid Amount cannot be greater than total negative outstanding amount {0}")
+					.format(total_negative_outstanding), InvalidPaymentEntry)
 
 	def set_title(self):
 		if self.payment_type in ("Receive", "Pay"):
@@ -657,7 +660,7 @@ def get_outstanding_reference_documents(args):
 			.format(frappe.db.escape(args["voucher_type"]), frappe.db.escape(args["voucher_no"]))
 
 	# Add cost center condition
-	if args.get("cost_center") and get_allow_cost_center_in_entry_of_bs_account():
+	if args.get("cost_center"):
 		condition += " and cost_center='%s'" % args.get("cost_center")
 
 	date_fields_dict = {

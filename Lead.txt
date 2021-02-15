@@ -1,0 +1,19 @@
+//frappe.ui.form.on('Lead', {
+//	refresh(frm) {
+		// your code here
+//	}
+//})
+frappe.ui.form.on('Lead', {
+ 	refresh(frm) {
+ 		frappe.call({
+ 			method: "erpnext.crm.doctype.lead.lead.tradeindia",
+ 			//args: {"enabled": frm.doc.enabled}
+	            callback: function(r) {
+			    console.log(r);
+				if (!r.exe){
+				}
+	            }
+ 				});
+	
+ 	}
+ });

@@ -137,12 +137,12 @@ def validate_quantity(doc, args, ref, valid_items, already_returned_items):
 		if reference_qty:
 			if flt(args.get(column)) > 0:
 				frappe.throw(_("{0} must be negative in return document").format(label))
-			elif returned_qty >= reference_qty and args.get(column):
-				frappe.throw(_("Item {0} has already been returned")
-					.format(args.item_code), StockOverReturnError)
-			elif abs(flt(current_stock_qty, stock_qty_precision)) > max_returnable_qty:
-				frappe.throw(_("Row # {0}: Cannot return more than {1} for Item {2}")
-					.format(args.idx, max_returnable_qty, args.item_code), StockOverReturnError)
+#			elif returned_qty >= reference_qty and args.get(column):
+#				frappe.throw(_("Item {0} has already been returned")
+#					.format(args.item_code), StockOverReturnError)
+#			elif abs(flt(current_stock_qty, stock_qty_precision)) > max_returnable_qty:
+#				frappe.throw(_("Row # {0}: Cannot return more than {1} for Item {2}")
+#					.format(args.idx, max_returnable_qty, args.item_code), StockOverReturnError)
 
 def get_ref_item_dict(valid_items, ref_item_row):
 	from erpnext.stock.doctype.serial_no.serial_no import get_serial_nos
@@ -206,13 +206,15 @@ def get_already_returned_items(doc):
 def make_return_doc(doctype, source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
 	company = frappe.db.get_value("Delivery Note", source_name, "company")
+	pr_company = frappe.db.get_value("Purchase Receipt", source_name, "company")
 	default_warehouse_for_sales_return = frappe.db.get_value("Company", company, "default_warehouse_for_sales_return")
+	set_warehouse = frappe.db.get_value("Company", pr_company, "default_warehouse_for_sales_return")
 	def set_missing_values(source, target):
 		doc = frappe.get_doc(target)
 		doc.is_return = 1
 		doc.return_against = source.name
 		doc.ignore_pricing_rule = 1
-		doc.set_warehouse = ""
+		doc.set_warehouse = set_warehouse
 		if doctype == "Sales Invoice":
 			doc.is_pos = source.is_pos
 
@@ -259,12 +261,20 @@ def make_return_doc(doctype, source_name, target_doc=None):
 	def update_item(source_doc, target_doc, source_parent):
 		target_doc.qty = -1* source_doc.qty
 		if doctype == "Purchase Receipt":
-			target_doc.received_qty = -1* source_doc.received_qty
-			target_doc.rejected_qty = -1* source_doc.rejected_qty
-			target_doc.qty = -1* source_doc.qty
+#			target_doc.received_qty = -1* source_doc.received_qty
+#			target_doc.rejected_qty = -1* source_doc.rejected_qty
+			target_doc.received_qty = -1* source_doc.rejected_qty
+			target_doc.rejected_qty = 0
+			target_doc.short_quantity = 0
+			target_doc.po_qty = 0
+			target_doc.invoice_quantity = 0
+			target_doc.rate_s= 0
+#			target_doc.qty = -1* source_doc.qty
+			target_doc.qty = -1* source_doc.rejected_qty
 			target_doc.stock_qty = -1 * source_doc.stock_qty
 			target_doc.purchase_order = source_doc.purchase_order
 			target_doc.purchase_order_item = source_doc.purchase_order_item
+			target_doc.warehouse = set_warehouse
 			target_doc.rejected_warehouse = source_doc.rejected_warehouse
 			target_doc.purchase_receipt_item = source_doc.name
 
@@ -322,6 +332,158 @@ def make_return_doc(doctype, source_name, target_doc=None):
 		"Payment Schedule": {
 			"doctype": "Payment Schedule",
 			"postprocess": update_terms
+		}
+	}, target_doc, set_missing_values)
+
+	return doclist
+
+def make_return_doc_for_reject(doctype, source_name, target_doc=None):
+	from frappe.model.mapper import get_mapped_doc
+	company = frappe.db.get_value("Delivery Note", source_name, "company")
+	default_warehouse_for_sales_return = frappe.db.get_value("Company", company, "default_warehouse_for_sales_return")
+	def set_missing_values(source, target):
+		doc = frappe.get_doc(target)
+		doc.is_return = 1
+		doc.rejected_qty = 1
+		doc.return_against = source.name
+		doc.ignore_pricing_rule = 1
+		doc.set_warehouse = ""
+		if doctype == "Sales Invoice":
+			doc.is_pos = source.is_pos
+
+			# look for Print Heading "Credit Note"
+			if not doc.select_print_heading:
+				doc.select_print_heading = frappe.db.get_value("Print Heading", _("Credit Note"))
+
+		elif doctype == "Purchase Invoice":
+			# look for Print Heading "Debit Note"
+			doc.select_print_heading = frappe.db.get_value("Print Heading", _("Debit Note"))
+
+		for tax in doc.get("taxes"):
+			if tax.charge_type == "Actual":
+				tax.tax_amount = -1 * tax.tax_amount
+
+		if doc.get("is_return"):
+			if doc.doctype == 'Purchase Invoice':
+				doc.paid_amount = -1 * source.paid_amount
+				doc.base_paid_amount = -1 * source.base_paid_amount
+
+		if doc.get("is_return") and hasattr(doc, "packed_items"):
+			for d in doc.get("packed_items"):
+				d.qty = d.qty * -1
+
+		doc.discount_amount = -1 * source.discount_amount
+		doc.run_method("calculate_taxes_and_totals")
+
+	def update_item(source_doc, target_doc, source_parent):
+		target_doc.qty = -1* source_doc.qty
+		if doctype == "Purchase Invoice":
+			target_doc.invoice_quantity = -1 * source_parent.total_rejected
+			target_doc.received_qty = -1* source_doc.received_qty
+			target_doc.rejected_qty = -1* source_doc.rejected_qty
+			target_doc.qty = -1* source_parent.total_rejected
+			target_doc.stock_qty = -1 * source_doc.stock_qty
+			target_doc.purchase_order = source_doc.purchase_order
+			target_doc.purchase_receipt = source_doc.purchase_receipt
+			target_doc.rejected_warehouse = source_doc.rejected_warehouse
+			target_doc.po_detail = source_doc.po_detail
+			target_doc.pr_detail = source_doc.pr_detail
+
+	def update_terms(source_doc, target_doc, source_parent):
+		target_doc.payment_amount = -source_doc.payment_amount
+		target_doc.outstanding_amount = -source_doc.payment_amount
+
+	doclist = get_mapped_doc(doctype, source_name,	{
+		doctype: {
+			"doctype": doctype,
+
+			"validation": {
+				"docstatus": ["=", 0],
+			}
+		},
+		doctype +" Item": {
+			"doctype": doctype + " Item",
+			"field_map": {
+				"serial_no": "serial_no",
+				"batch_no": "batch_no"
+			},
+			"postprocess": update_item
+		}
+	}, target_doc, set_missing_values)
+
+	return doclist
+
+def make_return_doc_for_shortqty(doctype, source_name, target_doc=None):
+	from frappe.model.mapper import get_mapped_doc
+	company = frappe.db.get_value("Delivery Note", source_name, "company")
+	default_warehouse_for_sales_return = frappe.db.get_value("Company", company, "default_warehouse_for_sales_return")
+	def set_missing_values(source, target):
+		doc = frappe.get_doc(target)
+		doc.is_return = 1
+		doc.short_qty = 1
+		doc.return_against = source.name
+		doc.ignore_pricing_rule = 1
+		doc.set_warehouse = ""
+#		doc.outstanding_amount = source.rounded_total
+		if doctype == "Sales Invoice":
+			doc.is_pos = source.is_pos
+
+			# look for Print Heading "Credit Note"
+			if not doc.select_print_heading:
+				doc.select_print_heading = frappe.db.get_value("Print Heading", _("Credit Note"))
+
+		elif doctype == "Purchase Invoice":
+			# look for Print Heading "Debit Note"
+			doc.select_print_heading = frappe.db.get_value("Print Heading", _("Debit Note"))
+
+		for tax in doc.get("taxes"):
+			if tax.charge_type == "Actual":
+				tax.tax_amount = -1 * tax.tax_amount
+
+#		if doc.get("is_return"):
+#			if doc.doctype == 'Purchase Invoice':
+#				doc.paid_amount = -1 * source.paid_amount
+#				doc.base_paid_amount = -1 * source.base_paid_amount
+
+		if doc.get("is_return") and hasattr(doc, "packed_items"):
+			for d in doc.get("packed_items"):
+				d.qty = d.qty * -1
+
+		doc.discount_amount = -1 * source.discount_amount
+		doc.run_method("calculate_taxes_and_totals")
+
+	def update_item(source_doc, target_doc, source_parent):
+		target_doc.qty = -1* source_doc.qty
+		if doctype == "Purchase Invoice":
+			target_doc.invoice_quantity = -1 * source_parent.total_short_qty
+			target_doc.received_qty = -1* source_doc.received_qty
+			target_doc.rejected_qty = -1* source_doc.rejected_qty
+			target_doc.qty = -1* source_parent.total_short_qty
+			target_doc.stock_qty = -1 * source_doc.stock_qty
+			target_doc.purchase_order = source_doc.purchase_order
+			target_doc.purchase_receipt = source_doc.purchase_receipt
+			target_doc.rejected_warehouse = source_doc.rejected_warehouse
+			target_doc.po_detail = source_doc.po_detail
+			target_doc.pr_detail = source_doc.pr_detail
+
+	def update_terms(source_doc, target_doc, source_parent):
+		target_doc.payment_amount = -source_doc.payment_amount
+		target_doc.outstanding_amount = -source_doc.payment_amount
+	doclist = get_mapped_doc(doctype, source_name,	{
+		doctype: {
+			"doctype": doctype,
+
+			"validation": {
+				"docstatus": ["=", 0],
+			}
+		},
+		doctype +" Item": {
+			"doctype": doctype + " Item",
+			"field_map": {
+				"serial_no": "serial_no",
+				"batch_no": "batch_no"
+			},
+			"postprocess": update_item
 		}
 	}, target_doc, set_missing_values)
 

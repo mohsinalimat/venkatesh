@@ -1,0 +1,89 @@
+frappe.ui.form.on('Quotation', {
+	validate(frm) {
+ $.each(frm.doc.items || [], function(i, d) {
+            d.amount_disc=d.qty*d.rate_disc;
+        });
+	},
+	discounted_price_list(frm,cdt,cdn) {
+	        calculate_total_amount(frm, cdt, cdn)
+	}
+	
+})
+// frappe.ui.form.on("Quotation", "onload", function(frm) {
+//     cur_frm.set_query("discounted_price_list", function() {
+//         return {
+//             filters: {
+//                 Selling: 1
+//             }
+//         };
+//     });
+// });
+
+frappe.ui.form.on("Quotation Item", 
+    { 
+        item_code: function(frm, cdt, cdn) 
+            { 
+		   calculate_total_amount(frm, cdt, cdn)
+            },
+        qty:function(frm, cdt, cdn){
+            calculate_total_amount(frm, cdt, cdn)
+        }
+    })
+
+let calculate_total_amount = function (frm, cdt, cdn){
+    //var d = locals[cdt][cdn];
+    $.each(frm.doc.items || [], function(i, d) {
+                console.log("Item Code: " + d.item_code);
+                frappe.call(
+                    { 
+                        method: "frappe.client.get_value",
+                        args: { 
+                            doctype: "Item Price", 
+                            filters: {
+                                price_list: frm.doc.discounted_price_list, 
+                                item_code: d.item_code
+                            },
+                            fieldname:["price_list_rate"]
+                        },
+                        callback: function(r) 
+                            { 
+                                if(r.message) 
+                                    { 
+                                        var item_price = r.message;
+                                if (d.qty==0){
+                                d.qty = 1
+                                }
+                                if (d.item_code ){
+                                d.rate_disc = item_price.price_list_rate;
+                                }
+                               //d.rate_disc = item_price.price_list_rate;
+                               var amount_disc=d.qty*d.rate_disc;
+                                if (amount_disc){
+                                    d.amount_disc = amount_disc
+                                }
+                               refresh_field("items")
+                        } 
+                            }
+                    });
+    })
+}
+// frappe.ui.form.on('Quotation', {
+
+// discounted_price_list: function(frm) {
+// 		var child_table=cur_frm.doc.items;
+// 		for(var i=0;i<child_table.length;i++){
+// 		//	child_table[i].rate_disc =50;
+// 		}
+// 		cur_frm.refresh_fields('items');	
+
+// }  });    
+ 
+
+
+frappe.ui.form.on("Quotation", "validate", function (frm, cdt, cdn) {
+    var total = 0;
+    $.each(frm.doc.items || [], function (i, d) {
+        total += flt(d.amount_disc);
+    });
+    frm.set_value("total_amt_dsc", total);
+});

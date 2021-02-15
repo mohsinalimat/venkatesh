@@ -221,6 +221,8 @@ class StockController(AccountsController):
 					d.batch_no = frappe.get_doc(dict(
 						doctype='Batch',
 						item=d.item_code,
+						manufacturing_date = d.manufacturing_date,
+						expiry_date = d.expiry_date,
 						supplier=getattr(self, 'supplier', None),
                                                 supp=getattr(self, 'supp', None),
 						reference_doctype=self.doctype,
@@ -364,17 +366,17 @@ class StockController(AccountsController):
 					link = frappe.utils.get_link_to_form('Quality Inspection', d.quality_inspection)
 					frappe.throw(_("Quality Inspection: {0} is not submitted for the item: {1} in row {2}").format(link, d.item_code, d.idx), QualityInspectionNotSubmittedError)
 
-				qa_failed = any([r.status=="Rejected" for r in qa_doc.readings])
-				if qa_failed:
-					frappe.throw(_("Row {0}: Quality Inspection rejected for item {1}")
-						.format(d.idx, d.item_code), QualityInspectionRejectedError)
+#				qa_failed = any([r.status=="Rejected" for r in qa_doc.readings])
+#				if qa_failed:
+#					frappe.throw(_("Row {0}: Quality Inspection rejected for item {1}")
+#						.format(d.idx, d.item_code), QualityInspectionRejectedError)
 			elif qa_required :
 				action = frappe.get_doc('Stock Settings').action_if_quality_inspection_is_not_submitted
 				if self.docstatus==1 and action == 'Stop':
 					frappe.throw(_("Quality Inspection required for Item {0} to submit").format(frappe.bold(d.item_code)),
 						exc=QualityInspectionRequiredError)
-				else:
-					frappe.msgprint(_("Create Quality Inspection for Item {0}").format(frappe.bold(d.item_code)))
+#				else:
+#					frappe.msgprint(_("Create Quality Inspection for Item {0}").format(frappe.bold(d.item_code)))
 
 	def update_blanket_order(self):
 		blanket_orders = list(set([d.blanket_order for d in self.items if d.blanket_order]))
